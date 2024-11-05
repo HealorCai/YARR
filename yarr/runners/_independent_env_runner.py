@@ -154,8 +154,9 @@ class _IndependentEnvRunner(_EnvRunner):
             env.env._action_mode.arm_action_mode.set_callable_each_step(tr.take_snap)
 
         if not os.path.exists(self._weightsdir):
+            
             # '/home/code/peract_ws/peract_bimanual/dual_arm_test/weights/'
-            raise Exception('No weights directory found.')
+            raise Exception(f'No weights:{self._weightsdir} directory found.')
 
         # to save or not to save evaluation metrics (set as False for recording videos)
         if self._save_metrics:
@@ -166,7 +167,8 @@ class _IndependentEnvRunner(_EnvRunner):
         # one weight for all tasks (used for validation)
         if type(weight) == int:
             logging.info('Evaluating weight %s' % weight)
-            weight_path = os.path.join(self._weightsdir, str(weight))
+            # weight_path = os.path.join(self._weightsdir, str(weight))
+            weight_path = self._weightsdir
             seed_path = self._weightsdir.replace('/weights', '')
             # print('weight_path: ',weight_path)
             self._agent.load_weights(weight_path)
@@ -254,9 +256,8 @@ class _IndependentEnvRunner(_EnvRunner):
                 # save recording
                 if rec_cfg.enabled:
                     success = reward > 0.99
-                    record_file = os.path.join(seed_path, self.video_dir_name,
-                                               '%s_w%s_s%s_%s.mp4' % (task_name,
-                                                                      weight_name,
+                    record_file = os.path.join(rec_cfg.save_path, self.video_dir_name,
+                                               '%s_s%s_%s.mp4' % (task_name,
                                                                       eval_demo_seed,
                                                                       'succ' if success else 'fail'))
 
