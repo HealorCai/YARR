@@ -24,6 +24,8 @@ from pyrep.objects.vision_sensor import VisionSensor
 
 from yarr.runners._env_runner import _EnvRunner
 
+from pyrep.objects.shape import Shape 
+from pyrep.const import PrimitiveShape
 
 class _IndependentEnvRunner(_EnvRunner):
 
@@ -138,7 +140,10 @@ class _IndependentEnvRunner(_EnvRunner):
 
         env = self._eval_env
         env.eval = eval
-        env.launch()
+        env.launch() 
+        
+        # test visualizer
+        # env._rlbench_env._pyrep
 
         # initialize cinematic recorder if specified
         rec_cfg = cinematic_recorder_cfg

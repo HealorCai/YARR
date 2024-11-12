@@ -35,11 +35,13 @@ class ActResult(object):
     def __init__(self, action: Any,
                  observation_elements: dict = None,
                  replay_elements: dict = None,
-                 info: dict = None):
+                 info: dict = None,
+                 visual_targets: list = None):
         self.action = action
         self.observation_elements = observation_elements or {}
         self.replay_elements = replay_elements or {}
         self.info = info or {}
+        self.visual_targets = visual_targets
 
 
 class Agent(ABC):

@@ -36,8 +36,7 @@ class RolloutGenerator(object):
             print(f'step: {step}')
             prepped_data = {k:torch.tensor(np.array(v)[None], device=self._env_device) for k, v in obs_history.items()}
 
-            act_result = agent.act(step_signal.value, prepped_data,
-                                   deterministic=eval)
+            act_result = agent.act(env._rlbench_env._pyrep, step_signal.value, prepped_data, deterministic=eval)
 
             # Convert to np if not already
             agent_obs_elems = {k: np.array(v) for k, v in
@@ -82,8 +81,7 @@ class RolloutGenerator(object):
                 # one last time (i.e. acting in the terminal state).
                 if len(act_result.observation_elements) > 0:
                     prepped_data = {k: torch.tensor([v], device=self._env_device) for k, v in obs_history.items()}
-                    act_result = agent.act(step_signal.value, prepped_data,
-                                           deterministic=eval)
+                    act_result = agent.act(env._rlbench_env._pyrep, step_signal.value, prepped_data, deterministic=eval)
                     agent_obs_elems_tp1 = {k: np.array(v) for k, v in
                                            act_result.observation_elements.items()}
                     obs_tp1.update(agent_obs_elems_tp1)
