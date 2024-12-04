@@ -20,7 +20,7 @@ from yarr.utils.transition import Transition
 from yarr.utils.process_str import change_case
 import pickle
 import logging
-
+from pdb import set_trace
 
 ROBOT_STATE_KEYS = ['joint_velocities', 'joint_positions', 'joint_forces',
                         'gripper_open', 'gripper_pose',
@@ -30,6 +30,8 @@ ROBOT_STATE_KEYS = ['joint_velocities', 'joint_positions', 'joint_forces',
 
 # ..todo:: possibly duplicated code.
 def _extract_obs_bimanual(obs: BimanualObservation, channels_last: bool, observation_config: ObservationConfig):
+    # print(obs)
+    # set_trace()
     obs_dict = vars(obs)
     obs_dict = {k: v for k, v in obs_dict.items() if v is not None}
 
@@ -201,10 +203,13 @@ class RLBenchEnv(Env):
         else:
             extracted_obs = _extract_obs_unimanual(obs, self._channels_last, self._observation_config)
         if self._include_lang_goal_in_obs:
-            extracted_obs['lang_goal_tokens'] = tokenize([self._lang_goal])[0].numpy()
+            # extracted_obs['lang_goal_tokens'] = tokenize([self._lang_goal])[0].numpy()
+            # with open(self._lang_path, "rb") as f:
+            #     instruction_embedding_dict = pickle.load(f)
+            # extracted_obs['lang_goal_emb'] = instruction_embedding_dict[self._lang_goal]
             with open(self._lang_path, "rb") as f:
                 instruction_embedding_dict = pickle.load(f)
-            extracted_obs['lang_goal_emb'] = instruction_embedding_dict[self._lang_goal]
+            extracted_obs['lang_goal_emb'] = instruction_embedding_dict[self._task_name][self._variation_num].numpy()
         return extracted_obs
 
     def launch(self):
@@ -215,8 +220,10 @@ class RLBenchEnv(Env):
         self._rlbench_env.shutdown()
 
     def reset(self) -> dict:
-        descriptions, obs = self._task.reset()
+        descriptions, name, variation, obs = self._task.reset()
         self._lang_goal = descriptions[0] # first description variant
+        self._task_name = name 
+        self._variation_num = variation 
         extracted_obs = self.extract_obs(obs)
         return extracted_obs
 
@@ -309,8 +316,10 @@ class MultiTaskRLBenchEnv(MultiTaskEnv):
             self._episodes_this_task = 0
         self._episodes_this_task += 1
 
-        descriptions, obs = self._task.reset()
+        descriptions, name, variation, obs = self._task.reset()
         self._lang_goal = descriptions[0] # first description variant
+        self._task_name = name 
+        self._variation_num = variation 
         extracted_obs = self.extract_obs(obs)
 
         return extracted_obs

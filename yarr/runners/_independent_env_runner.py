@@ -198,9 +198,12 @@ class _IndependentEnvRunner(_EnvRunner):
                 print('Evaluating weight %s for %s' % (weight_name, task_name))
 
             # evaluate on N tasks * M episodes per task = total eval episodes
+            # device_num = torch.cuda.device_count()
+            # for ep in range(device_idx , self._eval_episodes , device_num):
+
             for ep in range(self._eval_episodes):
-                eval_demo_seed = ep + self._eval_from_eps_number
-                logging.info('%s: Starting episode %d, seed %d.' % (name, ep, eval_demo_seed))
+                eval_demo_seed = ep + self._eval_from_eps_number # = ep
+                logging.info('%s: Starting episode %d, seed %d.' % (name, eval_demo_seed, eval_demo_seed))
 
                 # the current task gets reset after every M episodes
                 episode_rollout = []
@@ -209,7 +212,7 @@ class _IndependentEnvRunner(_EnvRunner):
                     self._step_signal, env, self._agent,
                     self._episode_length, self._timesteps,
                     eval, eval_demo_seed=eval_demo_seed,
-                    record_enabled=rec_cfg.enabled)
+                    record_enabled=rec_cfg.enabled, device=device)
                 
                 
                 

@@ -40,6 +40,7 @@ class IndependentEnvRunner(EnvRunner):
                  multi_task: bool = False,
                  time_steps: int = 1,
                  video_dir_name: str = None,
+                 num_processes: int = 1,
                  ):
             super().__init__(train_env, agent, train_replay_buffer, num_train_envs, num_eval_envs,
                             rollout_episodes, eval_episodes, training_iterations, eval_from_eps_number,
@@ -48,6 +49,7 @@ class IndependentEnvRunner(EnvRunner):
                             env_device, multi_task)
             self._timesteps = time_steps
             self.video_dir_name = video_dir_name
+            self.num_processes=num_processes
 
     def summaries(self) -> List[Summary]:
         summaries = []
@@ -82,7 +84,8 @@ class IndependentEnvRunner(EnvRunner):
               env_config,
               device_idx,
               save_metrics,
-              cinematic_recorder_cfg):
+              cinematic_recorder_cfg,
+              process_id):
 
         if hasattr(self, "_on_thread_start"):
             self._on_thread_start()
@@ -113,17 +116,19 @@ class IndependentEnvRunner(EnvRunner):
                 record_every_n=env_config[8],
                 lang_path=env_config[9],
                 )
-
+        eval_episodes = self._eval_episodes//self.num_processes
+        eval_from_eps_number = self._eval_from_eps_number + process_id*eval_episodes
+        env_device = torch.device('cuda:%d' % device_idx)
         self._internal_env_runner = _IndependentEnvRunner(
             self._train_env, eval_env, self._agent, self._timesteps, self._train_envs,
-            self._eval_envs, self._rollout_episodes, self._eval_episodes,
-            self._training_iterations, self._eval_from_eps_number, self._episode_length, self._kill_signal,
+            self._eval_envs, self._rollout_episodes, eval_episodes,
+            self._training_iterations, eval_from_eps_number, self._episode_length, self._kill_signal,
             self._step_signal, self._num_eval_episodes_signal,
             self._eval_epochs_signal, self._eval_report_signal,
             self.log_freq, self._rollout_generator, None,
             self.current_replay_ratio, self.target_replay_ratio,
             self._weightsdir, self._logdir,
-            self._env_device, self._previous_loaded_weight_folder,
+            env_device, self._previous_loaded_weight_folder,
             num_eval_runs=self._num_eval_runs,
             video_dir_name=self.video_dir_name)
 

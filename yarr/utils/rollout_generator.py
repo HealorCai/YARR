@@ -17,24 +17,59 @@ class RolloutGenerator(object):
     def generator(self, step_signal: Value, env: Env, agent: Agent,
                   episode_length: int, timesteps: int,
                   eval: bool, eval_demo_seed: int = 0,
-                  record_enabled: bool = False):
+                  record_enabled: bool = False, device = None):
 
         if eval:
             obs = env.reset_to_demo(eval_demo_seed)
+            # print(f'obs: {obs}')
+            # print(f"rgb: {obs['front_rgb'].shape}")
+            # print(f"pcd: {obs['front_point_cloud'].shape}")
+            # print(f"left_gripper_pose: {obs['left_gripper_pose'].shape}")
+            # print(f"lang_emb: {obs['lang_goal_emb'].shape}")
+
+            # rgb: (3, 256, 256)
+            # pcd: (3, 256, 256)
+            # left_gripper_pose: (7,)
+            # lang_emb: lang_emb: torch.Size([1, 53, 512])
+            # set_trace()
         else:
             obs = env.reset()
 
+        # 'task_name': 'bimanual_push_box'
+        # 'variation_num': 0
+
+
+        
         agent.reset()
         for k, v in obs.items():
             if isinstance(v, float):
                 obs[k] = np.float32(v)
-        obs_history = {k: [np.array(v, dtype=self._get_type(v))] * timesteps for k, v in obs.items()}
+        obs_history = {k: [np.array(v, dtype=self._get_type(v))] * timesteps for k, v in obs.items() }
         
+        # obs_history = {}
+        # non_tensor_obs = {k: [np.array(v, dtype=self._get_type(v))] * timesteps for k, v in obs.items() if not isinstance(v, torch.Tensor)}
+        # tensor_obs = {k: [np.array(v.numpy(), dtype=v.numpy().dtype)] * timesteps for k, v in obs.items() if isinstance(v, torch.Tensor)}
+        # obs_history.update(non_tensor_obs)
+        # obs_history.update(tensor_obs)
+
         time_start = time.time()
 
         for step in range(episode_length):
             print(f'step: {step}')
-            prepped_data = {k:torch.tensor(np.array(v)[None], device=self._env_device) for k, v in obs_history.items()}
+            print(f'prepped_data_device:{device}')
+            prepped_data = {k:torch.tensor(np.array(v)[None], device=device) for k, v in obs_history.items()}
+            # prepped_data = {k:torch.tensor(np.array(v)[None], device=self._env_device) for k, v in obs_history.items()}
+
+            # print(f"rgb: {prepped_data['front_rgb'].shape}")
+            # print(f"pcd: {prepped_data['front_point_cloud'].shape}")
+            # print(f"left_gripper_pose: {prepped_data['left_gripper_pose'].shape}")
+            # print(f"lang_emb: {prepped_data['lang_goal_emb'].shape}")
+            # set_trace()
+
+            # rgb: torch.Size([1, 1, 3, 256, 256])
+            # pcd: torch.Size([1, 1, 3, 256, 256])
+            # left_gripper_pose: torch.Size([1, 1, 7])
+            # lang_emb: torch.Size([1, 1, 1, 53, 512])
 
             act_result = agent.act(env._rlbench_env._pyrep, step_signal.value, prepped_data, deterministic=eval)
 
@@ -63,8 +98,6 @@ class RolloutGenerator(object):
             for k in obs_history.keys():
                 obs_history[k].append(transition.observation[k])
                 obs_history[k].pop(0)
-                # obs_history[k].insert(0, transition.observation[k])  # 在开头插入元素
-                # obs_history[k].pop()  # 删除最后一个元素
 
 
             transition.info["active_task_id"] = env.active_task_id
@@ -80,7 +113,9 @@ class RolloutGenerator(object):
                 # If the agent gives us observations then we need to call act
                 # one last time (i.e. acting in the terminal state).
                 if len(act_result.observation_elements) > 0:
-                    prepped_data = {k: torch.tensor([v], device=self._env_device) for k, v in obs_history.items()}
+                    print(f'prepped_data_device:{device}')
+                    prepped_data = {k: torch.tensor([v], device=device) for k, v in obs_history.items()}
+                    # prepped_data = {k: torch.tensor([v], device=self._env_device) for k, v in obs_history.items()}
                     act_result = agent.act(env._rlbench_env._pyrep, step_signal.value, prepped_data, deterministic=eval)
                     agent_obs_elems_tp1 = {k: np.array(v) for k, v in
                                            act_result.observation_elements.items()}
